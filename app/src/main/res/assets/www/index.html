@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasir AuraFood Offline</title>
+</head>
+
+<body>
+  <h2>AuraFood POS</h2>
+  <button onclick="simpanTransaksi()">Bayar Rp 50.000</button>
+  <p id="status">Status: Standby</p>
+
+  <script>
+    function simpanTransaksi() {
+      // 1. Ambil data dari form (contoh statis)
+      let trxBaru = { id: Date.now(), nominal: 50000, jenis: "Pendapatan Usaha" };
+
+      // 2. Simpan ke memori HP (localStorage) - OFFLINE FIRST
+      let daftarTrx = JSON.parse(localStorage.getItem('antrean_trx')) || [];
+      daftarTrx.push(trxBaru);
+      localStorage.setItem('antrean_trx', JSON.stringify(daftarTrx));
+
+      document.getElementById("status").innerText = "Tersimpan Offline!";
+
+      // 3. Coba kirim jika ada internet
+      if (navigator.onLine) {
+        sinkronkanData();
+      }
+    }
+
+    function sinkronkanData() {
+      let data = localStorage.getItem('antrean_trx');
+      if (!data || data === "[]") return;
+
+      document.getElementById("status").innerText = "Mengirim ke Google...";
+
+      // Ganti URL ini dengan URL Web App Apps Script Anda nanti
+      fetch("https://script.google.com/macros/s/AKfycbzlVeWkqH3aj1JNc0XHIywMtXOG75arHK4gFn-_VKD6iXciBZAaQBiIsB4tTGI_lzLi/exec", {
+        method: "POST",
+        body: JSON.stringify({ mode: "SYNC", data: JSON.parse(data) })
+      }).then(res => res.json()).then(respon => {
+        if (respon.sukses) {
+          localStorage.removeItem('antrean_trx'); // Hapus dari HP jika sukses
+          document.getElementById("status").innerText = "Sukses Sinkron!";
+        }
+      }).catch(err => {
+        document.getElementById("status").innerText = "Gagal kirim, akan dicoba lagi nanti.";
+      });
+    }
+
+    // Pendeteksi otomatis saat sinyal HP nyala lagi
+    window.addEventListener('online', sinkronkanData);
+  </script>
+</body>
+
+</html>
